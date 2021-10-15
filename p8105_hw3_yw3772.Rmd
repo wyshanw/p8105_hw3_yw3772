@@ -131,15 +131,78 @@ Take mean of apple & ice cream mean hour
 
 ```{r}
 meanhour_table %>% 
-  mutate(mean_hour = (Pink_Lady_Apples_mean_hour+Coffee_Ice_Cream_mean_hour)/2 ) %>% 
-  subset(select = c("order_dow", "mean_hour"))
+  mutate(mean_hour = ((Pink_Lady_Apples_mean_hour+Coffee_Ice_Cream_mean_hour)/2) ) %>% 
+  select(order_dow, mean_hour)
 ```
 
 
 ## Problem 2
 
 ```{r, eval=FALSE}
-data("brfss_smart2010")
+data("brfss_smart2010") 
+```
+
+Clean the data
+
+```{r}
+brfss_smart2010 = 
+  brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  filter(topic == "Overall Health") %>% 
+  filter(response == c("Excellent", "Very good", "Good", "Fair", "Poor")) %>% 
+  mutate(response = factor(response, levels = c("Poor", "Fair", "Good", "Very good", "Excellent")))
+```
+
+Answer some questions:
+**In 2002, which states were observed at 7 or more locations? What about in 2010?**
+
+```{r}
+brfss_smart2010 %>% 
+  filter(year == "2002") %>% 
+  group_by(locationabbr) %>% 
+  summarize(n_obs = n_distinct(locationdesc)) %>% 
+  filter(n_obs >= 7)
+```
+
+There were zero states observed at 7 or more locations in 2002.
+
+```{r}
+brfss_smart2010 %>% 
+  filter(year == "2010") %>% 
+  group_by(locationabbr) %>% 
+  summarize(n_obs = n_distinct(locationdesc)) %>% 
+  filter(n_obs >= 7)
+```
+There were 9 states observed at 7 or more locations in 2010. They are CA, CO, FL, MA, MD, NE, NJ, NY, TX.
+
+**Construct a new dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value**
+
+```{r}
+brfss_smart2010_new = 
+  brfss_smart2010 %>% 
+  filter(response == "Excellent") %>% 
+  group_by(year, locationabbr) %>% 
+  summarize(mean_data_value = mean(data_value,na.rm = TRUE))
+```
+
+**Make a “spaghetti” plot**
+
+```{r}
+brfss_smart2010_new %>% 
+  ggplot(aes(x = locationabbr , y = mean_data_value)) +
+  geom_line() +
+  coord_flip()
+```
+**Make a two-panel plot** 
+Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+```{r}
+brfss_smart2010 %>% 
+  filter(year == c(2006, 2010)) %>% 
+  filter(locationabbr == "NY") %>% 
+  ggplot(aes(x = response, y = data_value))+
+  geom_point() + 
+  facet_grid(.~year)
 ```
 
 ## Problem 3
@@ -171,9 +234,14 @@ The total activity in each day through five weeks are all the same.
 **Make plot**
 
 ```{r}
-accel_plot = 
-  accel_df %>%
-  pivot_longer(activity_1:activity_1440, names_to = "activity", values_to = "activity_count_per_minute") %>%
+accel_df %>%
+  pivot_longer(
+    activity_1:activity_1440, 
+    names_to = "activity", 
+    values_to = "activity_count_per_minute") %>%
+   mutate(
+    activity = factor(activity)
+  ) %>% 
   ggplot(aes(x = day_id, y = activity_count_per_minute, colour = day_id)) +
   geom_point()
 ```
